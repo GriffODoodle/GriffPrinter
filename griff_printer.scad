@@ -23,21 +23,84 @@ vSlotSize = 20;
 v = vSlotSize;
 v2 = 2*v;
 
+//universal fan duct variables
+    // Optimize part for quickest printing - use an integer multiple of the printer's nozzle size
+    wall_width = 1;    // Wall thickness - should be a multiple of machine_nozzle;
 
-%frame("grey");
-%translate ([0,0,-3]) bottom_brace();
+    // Distance between J-heads
+    head_gap = 0;	// 0,20,26,30
+    // Size of the output of the blower
+    blower_out= [16.3, 25.5, 3];
+    out_depth = 8;
+    // Thickness of the outflow
+    ring_height = 6;
+    tolerance = 0.15;
+//griffPrinter ("grey");
 
-%translate ([0,20,20]) corner_brace();
-translate ([570/2,200,570]) {
-    %yAxis ("grey");
-    xBracket (1,"grey");
-    translate ([30,20,0]) rotate ([0,0,180]) xBracket (2, "grey");
+hotendShroud();
+
+module griffPrinter (color) {
+    %frame(color);
+    %translate ([0,0,-3]) bottom_brace(color);
+
+    %translate ([0,20,20]) corner_brace(color);
+    translate ([570/2,200,570]) {
+        yAxis (color);
+        xBracket (1,color);
+        translate ([30,-5.2,0]) rotate ([0,0,180]) E3dHolder(color);
+        translate ([0,-40.4,0]) rotate ([0,0,0]) E3dHolder_Shroud(color);
+        translate ([30,20,0]) rotate ([0,0,180]) xBracket (2, color);
+    }
+
+    %translate ([40,500,570]) rotate ([0,0,-90]) cornerPulley (color);
+    %translate ([570-40,500,570]) rotate ([0,0,180]) cornerPulley (color);
+    %translate ([510,0,480]) rotate ([0,-90,0]) YZEndstops (color);
+
+    %translate ([20,0,600]) stepperBracket(color);
 }
 
-%translate ([40,500,570]) rotate ([0,0,-90]) cornerPulley ("grey");
-%translate ([570-40,500,570]) rotate ([0,0,180]) cornerPulley ("grey");
-translate ([510,0,480]) rotate ([0,-90,0]) YZEndstops ("white");
 
+
+module stepperBracket (color) {
+    thickness = 4.8;
+//    motor_template = [ 1.7*25.4,   3,    31,   22, "NEMA 17" ],
+    motor_width = 1.7*25.4; 
+    bolt_radius = 1.5;
+    bolt_spacing = 31;
+    bolt_inset = (motor_width - bolt_spacing) / 2;
+    center_radius = 11;
+    //motor mount plate
+    color (color) {
+        translate ([30-motor_width/2,thickness,0]) {
+            difference () {
+                cube([motor_width,motor_width,thickness]);
+             translate([motor_width/2,motor_width/2,-1])
+               cylinder(thickness+2,center_radius,center_radius);
+             translate([motor_width-bolt_inset,motor_width-bolt_inset,-1])
+               cylinder(thickness+2,bolt_radius,bolt_radius);
+             translate([motor_width-bolt_inset,bolt_inset,-1])
+               cylinder(thickness+2,bolt_radius,bolt_radius);
+             translate([bolt_inset,bolt_inset,-1])
+               cylinder(thickness+2,bolt_radius,bolt_radius);
+             translate([bolt_inset,motor_width-bolt_inset,-1])
+               cylinder(thickness+2,bolt_radius,bolt_radius);
+            }
+        }
+        
+        difference () {
+            cube ([30-motor_width/2,thickness+motor_width,40]);
+            for (j = [0:1]) {
+                translate ([-1,10,20*j+12]) rotate ([0,90,0]) cylinder (r = 3,h=10);
+            }
+            translate ([-1,20,40]) rotate ([-51.52,0,0]) cube ([30-motor_width/2+2,50,50]);
+        }
+        difference () {
+            translate ([30-motor_width/2,0,0,]) cube ([motor_width,thickness,40]);
+            translate ([30-motor_width/2,-1,40]) rotate ([0,39.185,0]) cube ([70,thickness+2,50]);
+        }
+    }
+}
+    
 module YZEndstops (color) {
     color (color) {
         difference () {
@@ -61,37 +124,120 @@ module YZEndstops (color) {
 module xBracket (type, color) {
     xWidth = 30;
     xw=xWidth;
-    if (type==1) {
-        %translate ([0,5,20+10])rotate ([-90,0,0]) vWheel();
-        %translate ([xw,5,20+10])rotate ([-90,0,0]) vWheel();
-        %translate ([xw/2,5,0-10])rotate ([-90,0,0]) vWheel();
-    }
-    translate  ([0,-3,20+10]) rotate ([-90,0,0]) wCone(8,6);
-    translate  ([xw,-3,20+10]) rotate ([-90,0,0]) wCone(8,6);
-    translate  ([xw/2,-3,0-10]) rotate ([-90,0,0]) wCone(8,6);
-    if (type==1) difference () {
-        translate ([xw/2-10,-5,39.9]) cube([20,4,30]);
-        translate ([xw/2-4,-6,40+30-6]) rotate ([-90,0,0]) cylinder(r=1.5, h=6);
-        translate ([xw/2+4,-6,40+30-6]) rotate ([-90,0,0]) cylinder(r=1.5, h=6);
-    }
-    difference () {
-        union () {
-            translate ([-10,-5,-20]) cube([xw+20,4,60]);
-            //translate ([xw/2-13.5,-7,-3]) cube ([27,5,27]);
+    color (color ) {
+        if (type==1) {
+            %translate ([0,5,20+10])rotate ([-90,0,0]) vWheel();
+            %translate ([xw,5,20+10])rotate ([-90,0,0]) vWheel();
+            %translate ([xw/2,5,0-10])rotate ([-90,0,0]) vWheel();
         }
-        translate ([xw+10-6,-6,2]) cube ([3,6,1+ph+1]);
-        translate ([-10+3,-6,2+1+ph+1-po]) cube ([3,6,1+ph+1]);
-        translate  ([0,-6,20+10]) rotate ([-90,0,0]) cylinder (r=3,h=10);
-        translate  ([xw,-6,20+10]) rotate ([-90,0,0]) cylinder (r=3,h=10);
-        translate  ([xw/2,-6,0-10]) rotate ([-90,0,0]) cylinder (r=3,h=10);
-        
-        translate  ([-6,-6,5]) rotate ([-90,0,0]) cylinder (r=1,h=10);
-        translate  ([-6,-6,-5]) rotate ([-90,0,0]) cylinder (r=1,h=10);
-        
-        translate  ([xw/2-7,-8,10]) rotate ([-90,0,0]) cylinder (r=1.5,h=10);
-        translate  ([xw/2+7,-8,10]) rotate ([-90,0,0]) cylinder (r=1.5,h=10);
+        translate  ([0,-3,20+10]) rotate ([-90,0,0]) wCone(8,6);
+        translate  ([xw,-3,20+10]) rotate ([-90,0,0]) wCone(8,6);
+        translate  ([xw/2,-3,0-10]) rotate ([-90,0,0]) wCone(8,6);
+        if (type==1) difference () {
+            translate ([xw/2-10,-5,39.9]) cube([20,4,30]);
+            translate ([xw/2-4,-6,40+30-6]) rotate ([-90,0,0]) cylinder(r=1.5, h=6);
+            translate ([xw/2+4,-6,40+30-6]) rotate ([-90,0,0]) cylinder(r=1.5, h=6);
+        }
+        difference () {
+            union () {
+                translate ([-10,-5,-20]) cube([xw+20,4,60]);
+                //translate ([xw/2-13.5,-7,-3]) cube ([27,5,27]);
+            }
+            translate ([xw+10-6,-6,2]) cube ([3,6,1+ph+1]);
+            translate ([-10+3,-6,2+1+ph+1-po]) cube ([3,6,1+ph+1]);
+            translate  ([0,-6,20+10]) rotate ([-90,0,0]) cylinder (r=3,h=10);
+            translate  ([xw,-6,20+10]) rotate ([-90,0,0]) cylinder (r=3,h=10);
+            translate  ([xw/2,-6,0-10]) rotate ([-90,0,0]) cylinder (r=3,h=10);
+            
+            translate  ([-6,-6,5]) rotate ([-90,0,0]) cylinder (r=1,h=10);
+            translate  ([-6,-6,-5]) rotate ([-90,0,0]) cylinder (r=1,h=10);
+            
+            translate  ([xw/2-7,-8,10]) rotate ([-90,0,0]) cylinder (r=1.5,h=10);
+            translate  ([xw/2+7,-8,10]) rotate ([-90,0,0]) cylinder (r=1.5,h=10);
+        }
     }
-    
+}
+
+module E3dHolder (color) {
+    color(color) {
+        rotate ([-90,0,0]) {
+            translate ([0,-10,0]) difference () { //A frame
+                union () {
+                    hull () {
+                        translate ([30,-30,0]) cylinder (r=5,h=3);
+                        translate ([15,10,0]) cylinder (r=5,h=3);
+                    }
+                    hull () {
+                        translate ([00,-30,0]) cylinder (r=5,h=3);
+                        translate ([15,10,0]) cylinder (r=5,h=3);
+                    }
+                }
+                translate ([30,-30,-1]) cylinder (r=3,h=6);//holes 
+                translate ([0,-30,-1]) cylinder (r=3,h=6);//holes 
+                translate ([15,10,-1]) cylinder (r=3,h=6);//holes 
+            }
+            translate ([28,-30,7]) rotate ([0,90,0]) {
+                difference () {//5015 holder
+                    hull(){
+                        cylinder(r=4,h=2);
+                        translate([-4,4,0]) cube([8,8,2]);
+                        translate ([1,-4,0]) cube ([6,10,2]);
+                    }
+                    translate ([0,0,-1])cylinder(r=2.25,h=4);
+                }
+                //holey part of the 5015 from blower_50mm.scad
+                %translate ([-21.75,20,12.5]) blower_50mm();
+            }
+        }
+        difference () {//main box
+            translate ([0,0,15.1]) cube ([30,20,9.8]);
+            translate ([15,20,15]) {
+                union () {//top of E3d to be held
+                    cylinder(d=4.2, h=46);
+                    cylinder(d=12.2, h=8);
+                    translate([0,0,8 - 4.1]) cylinder(d=17, h= 4.1);    
+                    translate([0,0,7.99]) cylinder(d=12.2, h=2);
+                }
+            }
+            //bolt holes to hold types
+            translate ([4,21,20]) rotate ([90,0,0]) cylinder (r=1.6,h=22);
+            translate ([26,21,20]) rotate ([90,0,0]) cylinder (r=1.6,h=22);
+        }
+    }
+}
+module E3dHolder_Shroud (color) {
+    color(color) {
+        difference () {//main box
+            translate ([0,0,15.1-42]) cube ([30,15,9.8+42]);
+            translate ([15,15,15]) {
+                union () {//top of E3d to be held
+                    cylinder(d=4.2, h=46);
+                    cylinder(d=12.2, h=8);
+                    translate([0,0,8 - 4.1]) cylinder(d=17, h= 4.1);    
+                    translate([0,0,7.99]) cylinder(d=12.2, h=2);
+                }
+            }
+            //bolt holes to hold types
+            translate ([4,16,20]) rotate ([90,0,0]) cylinder (r=2,h=22);
+            translate ([26,16,20]) rotate ([90,0,0]) cylinder (r=2,h=22);
+            //cooling cylinder
+            translate ([15,15,15.1-42-1]) cylinder(r=12.5,h=42+1);
+            //Hotend Cooling Fan Holes
+            translate ([15,3,-10]) rotate ([90,0,0])for (i=[0:3])
+            {
+                rotate([0,0,i*90])
+                {
+                    translate([12, 12])
+                    {
+                        cylinder(r=1.15, h=7, center=true);
+                    }
+                }
+            }
+            //Hotend Cooling Fan Gap
+            translate ([15,15,-10]) rotate ([90,0,0]) cylinder (r=12.5,h=15+1);
+
+        }
+    }
 }
 
 module cornerPulley(color) {
@@ -130,8 +276,8 @@ module yAxis (color) {
  vslot(-446/2,0,0,0,446, color);
  color (color) translate ([446/2-20,0,2]) yBracket();
  color (color) translate ([-446/2+20,20,2]) rotate ([0,0,180]) yBracket();
- color (color) translate ([446/2+7,10,10]) rotate ([0,90,0]) vWheel();
- color (color) translate ([-446/2-7,10,10]) rotate ([0,-90,0]) vWheel();
+ //color (color) translate ([446/2+7,10,10]) rotate ([0,90,0]) vWheel();
+ //color (color) translate ([-446/2-7,10,10]) rotate ([0,-90,0]) vWheel();
  color (color) translate ([446/2-8,-20,-15]) rotate ([0,0,0]) vWheel();
  color (color) translate ([446/2-8,40,-15]) rotate ([0,0,0]) vWheel();
  color (color) translate ([-446/2+8,-20,-15]) rotate ([0,0,0]) vWheel();
@@ -508,4 +654,194 @@ module stepper(){
 
                 }
 
+}
+
+module universal_fan_duct_outflow(blower_nozzle_gap = 20, ring_height = ring_height, head_gap = head_gap, carve = false) {
+    ri = 7;
+    ro = ri + wall_width*2 + 4;
+    cut = ro * 2;
+    
+    angle = atan(head_gap / 2 / (blower_nozzle_gap + out_depth));
+    vent_len = (blower_nozzle_gap + out_depth) / cos(angle);
+    vent_width = out_depth*sqrt(3) + wall_width*2;
+
+    difference() {
+        rotate([0, 0, -angle]) {
+            // Exit ducting & fan mount
+            
+            // Connector to nozzle
+            translate([ri+wall_width, -vent_width/2, 0]) {
+                if (!carve) {
+                  cube([vent_len - ri - wall_width, vent_width, ring_height]);
+                } else {
+                  translate([-0.1, wall_width, wall_width])
+                        cube([vent_len - ri + 0.2, (vent_width-3*wall_width)/2, ring_height - wall_width*2]);
+                  translate([-0.1, wall_width + (vent_width-2*wall_width + wall_width)/2, wall_width])
+                        cube([vent_len - ri + 0.2, (vent_width-3*wall_width)/2, ring_height - wall_width*2]);
+               }
+            }
+              
+            universal_fan_duct_outlet(ro = ro, ri = ri, height = ring_height, carve = carve);
+        }
+        rotate([0, -19, 0]) if (!carve) {
+            translate([-ro, -cut/2, wall_width - 0.1]) cube([ro*3, cut, ring_height*2 + 0.2]);
+        } else {
+            translate([-ro, -(cut+2)/2, -0.1]) cube([ro*3, cut + 2, ring_height*2 + 0.2]);
+        }
+    }
+}
+
+module universal_fan_duct_outlet(ro=15, ri=8, height = 4, carve = false) {
+    rotate_extrude(convexity=4) {
+        translate([ri, 0]) {
+            if (!carve) {
+                square([ro-ri, height]);
+            } else {
+                polygon([[wall_width, -0.1], [wall_width*2, -0.1], 
+                         [ro-ri-wall_width, height*0.3], 
+                         [ro-ri-wall_width, height-wall_width], 
+                         [wall_width, height-wall_width]]);
+            }
+        }
+    }
+}
+
+module universal_fan_duct_blower_adapter_fab(flatHeight=7, squeezeHeight = 15, size = blower_out, carve = false, out_length=10) {
+    if (!carve) {
+       translate([wall_width, wall_width, 0])
+            cube([size[0], size[1], flatHeight+size[2]]);
+        hull() {
+            cube([size[0]+2*wall_width, size[1]+wall_width, flatHeight]);
+            translate([size[0]/2 + wall_width, size[1]/2, 0]) rotate([180, 0, 0]) cylinder(r = out_depth + wall_width - tolerance, h = squeezeHeight, $fn = 60);
+        }
+        translate([size[0]/2 + wall_width, size[1]/2, 0])
+            rotate([180, 0, 0]) cylinder(r = out_depth + wall_width - tolerance, h = squeezeHeight + out_length, $fn = 60);
+    } else {            
+        translate([wall_width*2, wall_width*2, -0.1])
+          hull() {
+              cube([size[0]-2*wall_width, size[1]-2*wall_width, flatHeight+size[2]+0.2]);
+            translate([size[0]/2-wall_width, size[1]/2-2*wall_width, 0]) rotate([180, 0, 0]) cylinder(r = out_depth, h = squeezeHeight + 0.1, $fn = 60);
+          }
+        translate([size[0]/2 + wall_width, size[1]/2, 0])
+            rotate([180, 0, 0]) cylinder(r = out_depth, h = squeezeHeight + out_length-wall_width, $fn = 60);
+    }
+}
+
+module hotendShroud() {
+
+    E3dHolder();
+    translate ([30,36,0]) rotate([0,0,180]) E3dHolder_Shroud();
+    translate ([30,3,-25]) {
+        blower_fan_cooling (flatHeight = 1, squeezeHeight = 10, out_length=7, blower_nozzle_gap = 18, output_angle=-10);
+    }
+    %translate ([15,20.5,10.5]) rotate ([0,0,90]) E3DHotend (); //From thing 80904
+}
+
+module E3DHotend () {
+    color("silver"){
+    difference(){
+        //top mounting point
+    union(){
+    translate([0,0,8.64]) cylinder(3.66,8,8);
+    cylinder(12.3,6,6);
+    cylinder(3.04,8,8);
+        //small thermal break
+    translate([0,0,-6.6]) cylinder(6.6,4.575,4.575);
+    translate([0,0,-4.15]) cylinder(1.9,8,8);
+        //big thermal break
+    translate([0,0,-38.14]) cylinder(31.54,4.575,4.575); //smallest inner shaft
+    translate([0,0,-38.14]) cylinder(18.88,6.5,6.5); //medium inner shaft
+    translate([0,0,-38.14]) cylinder(14.66,7.5,7.5); //large-bottom inner shaft
+    for (z = [0:7]){
+    translate([0,0,-8.8-4.2*z]) cylinder(2,12.5,12.5);}} //heatsink fins
+        //through and through hole
+    union(){
+    translate([0,0,10.31]) cylinder(2,1,4.465); //filament funnel - from ref. drawing
+    translate([0,0,-39.1]) cylinder(51.4,1,1,$fn=20);}}} //filament hole
+        
+        //begin heater block (from ref. drawings and extrapolation, not measured)
+    color("gray"){
+    translate([0,0,-40.14]) cylinder(2.1,1.2,1.2);
+    difference(){
+    translate([-4,-7.5,-48.14]) cube([15,15,8]);
+    union(){
+    translate([7,8,-44.14]) rotate([90,0,0]) cylinder(16,2,2,$fn=20);
+    translate([9,-4.5,-46.9]) rotate([90,0,0]) cylinder(3.1,.5,.5,$fn=20);}}}
+    translate([0,0,-51.14]) cylinder(3,4,4,$fn=6);
+    color("goldenrod") translate([0,0,-53.14]) cylinder(2,.4,3.5,$fn=20);
+}
+module blower_fan_cooling (flatHeight = 7, squeezeHeight = 30, out_length=10, blower_nozzle_gap = 30, output_angle = 0) {
+    difference () {
+        blower_fan_cooling_fab(carve = false, flatHeight = flatHeight, squeezeHeight = squeezeHeight, out_length=out_length, blower_nozzle_gap = blower_nozzle_gap, size = blower_out, output_angle = output_angle);
+        blower_fan_cooling_fab(carve = true, flatHeight = flatHeight, squeezeHeight = squeezeHeight, out_length=out_length, blower_nozzle_gap = blower_nozzle_gap, size = blower_out, output_angle = output_angle);
+    }
+}
+module blower_fan_cooling_fab (carve = false, flatHeight = 7, squeezeHeight = 15, out_length=10, blower_nozzle_gap = 30, size = blower_out, output_angle = 0) {
+    universal_fan_duct_blower_adapter_fab(flatHeight = flatHeight, squeezeHeight = squeezeHeight, size = size, carve = carve, out_length=out_length);
+    translate ([-blower_nozzle_gap+3,size[1]/2,-squeezeHeight-out_length]) rotate_about_pt ([0,0,output_angle],[blower_nozzle_gap+6,0,0])universal_fan_duct_outflow(blower_nozzle_gap = blower_nozzle_gap, ring_height = ring_height, head_gap = head_gap, carve = carve);
+}
+
+
+
+
+
+// rotate as per a, but around point pt
+module rotate_about_pt(a, pt) {
+    translate(pt)
+        rotate(a)
+            translate(-pt)
+                children();   
+}
+
+
+
+
+
+
+
+module c_fan(radius, height) {
+
+   color("red") cylinder(r=radius,h=1,center=true);
+
+   rotate([0,0,$t*10])
+   for (theta= [0:10:350]) {
+       rotate([0.0,0.0,theta]){
+           translate([radius-(radius*0.15),0.5,0.0]) rotate([0,0,15]) cube([radius*0.3,1.0,height-2.0],center=true);
+       }
+   }
+
+   color("orange") cylinder(r=radius*0.4,h=height-3,center=true);
+   color("black") cylinder(r=radius*0.1,h=height,center=true);
+
+}
+
+module blower_50mm(){
+
+   c_fan(radius=22.0, height=19.0);
+
+    difference(){
+        hull(){
+           translate([21.75,-20.00,0]) cylinder(r=3.25,h=21.0,center=true);
+           translate([-21.75,19.75,0]) cylinder(r=3.25,h=21.0,center=true);
+        }
+       translate([21.75,-20.00,0]) cylinder(r=2.25,h=21.5,center=true);
+       translate([-21.75,19.75,0]) cylinder(r=2.25,h=21.5,center=true);
+       cylinder(r=24, h=19.0,center=true);
+   }
+
+   difference(){
+       translate([12,12.5,0])  cube([26.0,25.0,20.0],center=true);
+       translate([12.0,12.5,0])  cube([23.5,26.0,17.0],center=true);
+       cylinder(r=18.0, h=22.0,center=true);
+   }
+
+   difference(){
+       cube([50.0,50.0,20.0],center=true);
+       cylinder(r=18.0, h=22.0,center=true);
+       cylinder(r=23.5, h=17.0,center=true);
+       translate([12,13.5,0.0]) cube([23.0,27.0,17.0],center=true);
+       rotate_extrude () {
+           translate([25,-11,0]) square(22);
+       }
+   }
 }
